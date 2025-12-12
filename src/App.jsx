@@ -284,8 +284,8 @@ const App = () => {
               color="border-pink-500/30 hover:border-pink-500"
               images={["life.png"]}
               gridClass="grid-cols-1"      // Kustom: Cuma 1 gambar lebar
-              heightClass="h-32"           // Kustom: Gambar tinggi
-              aspectClass="aspect-video"   // Kustom: Rasio video
+              heightClass="h-64"           // Kustom: Gambar tinggi
+              aspectClass="aspect-square"   // Kustom: Rasio video
             />
 
             {/* CONTOH KUSTOMISASI:
@@ -301,12 +301,10 @@ const App = () => {
               icon={<Briefcase className="text-purple-400" size={32} />}
               color="border-purple-500/30 hover:border-purple-500"
               images={[
-                "https://images.unsplash.com/photo-1560518883-ce09059ee971?w=400&q=80",
-                "https://images.unsplash.com/photo-1593604340846-4fbe976bd128?w=400&q=80",
-                "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80"
+                "land.png"
               ]}
-              gridClass="grid-cols-3"      // Kustom: 3 Kolom
-              heightClass="h-24"           // Kustom: Gambar kecil
+              gridClass="grid-cols-1"      // Kustom: 3 Kolom
+              heightClass="h-64"           // Kustom: Gambar kecil
               aspectClass="aspect-square"
             />
 
