@@ -873,7 +873,7 @@ const App = () => {
 
               <div className="w-[340px] md:w-[400px] flex-shrink-0">
                 <ProjectCard 
-                  title="Smart Meter"
+                  title="Smart Water Metering"
                   category="Embedded"
                   description="Sistem monitoring penggunaan air berbasis Arduino Uno untuk mencegah pemborosan air rumah tangga."
                   tags={['Arduino', 'C++', 'IoT']}
