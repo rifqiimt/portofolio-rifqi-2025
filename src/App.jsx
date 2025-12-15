@@ -1216,7 +1216,7 @@ const App = () => {
              ))}
           </div>
           <div className="w-24 h-2 bg-yellow-400 mx-auto mb-8"></div>
-          <p className="text-gray-400 text-sm font-mono">© 2025 Rifqi Mubarak Tampeng. <br/>Made with <span className="text-red-500">♥</span> & Neo-Brutalism Style.</p>
+          <p className="text-gray-400 text-sm font-mono">© 2025 Rifqi Mubarak Tampeng. All rights reserved</p>
         </div>
       </footer>
 
