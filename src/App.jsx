@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Mengimpor ikon-ikon dari library 'lucide-react'. 
-// Anda bisa mencari ikon lain di website lucide.dev dan menambahkannya di sini.
 import { 
   Github, 
   Linkedin, 
@@ -27,13 +25,17 @@ import {
   Building2,
   Phone,
   Zap,
-  MousePointer2
+  MousePointer2,
+  MapPin,
+  Terminal,
+  ArrowUpRight,
+  CloudSun,
+  Youtube, // Import icon Youtube
+  Globe    // Import icon Globe untuk website/demo
 } from 'lucide-react';
 
-/* --- HOOKS & UTILS (ALAT BANTU) --- */
+/* --- HOOKS & UTILS --- */
 
-// Hook kustom untuk mendeteksi apakah suatu elemen sedang terlihat di layar (viewport).
-// Digunakan untuk memicu animasi saat pengguna melakukan scroll ke bawah.
 const useOnScreen = (options) => {
   const ref = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -43,7 +45,7 @@ const useOnScreen = (options) => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setIsVisible(true);
-        observer.disconnect(); // Berhenti mengamati setelah elemen terlihat sekali
+        observer.disconnect();
       }
     }, options);
 
@@ -59,18 +61,65 @@ const useOnScreen = (options) => {
   return [ref, isVisible];
 };
 
-/* --- KOMPONEN-KOMPONEN KECIL (REUSABLE COMPONENTS) --- */
+// Hook Kustom untuk Auto-Scroll
+const useAutoScroll = (ref, speed = 1) => {
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
 
-// Komponen FadeIn: Membungkus konten agar muncul perlahan (animasi fade-in + naik ke atas)
-// Ubah 'delay' untuk mengatur jeda kemunculan.
-const FadeIn = ({ children, delay = 0, className = "" }) => {
+    let animationId;
+    let isPaused = false;
+
+    const animate = () => {
+      if (!isPaused) {
+        // Jika sudah mencapai ujung kanan, kembalikan ke awal (looping sederhana)
+        if (element.scrollLeft >= element.scrollWidth - element.clientWidth - 1) {
+           element.scrollLeft = 0; 
+        } else {
+           element.scrollLeft += speed;
+        }
+      }
+      animationId = requestAnimationFrame(animate);
+    };
+
+    // Event Listeners untuk Pause saat interaksi
+    const handleMouseEnter = () => isPaused = true;
+    const handleMouseLeave = () => isPaused = false;
+    const handleTouchStart = () => isPaused = true;
+    const handleTouchEnd = () => {
+      // Delay sedikit sebelum lanjut scroll setelah sentuhan selesai
+      setTimeout(() => { isPaused = false; }, 1000);
+    };
+
+    element.addEventListener('mouseenter', handleMouseEnter);
+    element.addEventListener('mouseleave', handleMouseLeave);
+    element.addEventListener('touchstart', handleTouchStart);
+    element.addEventListener('touchend', handleTouchEnd);
+
+    // Mulai animasi
+    animationId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      element.removeEventListener('mouseenter', handleMouseEnter);
+      element.removeEventListener('mouseleave', handleMouseLeave);
+      element.removeEventListener('touchstart', handleTouchStart);
+      element.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [ref, speed]);
+};
+
+/* --- KOMPONEN --- */
+
+// REVEAL ANIMATION: Slide up with bounce
+const Reveal = ({ children, delay = 0, className = "" }) => {
   const [ref, isVisible] = useOnScreen({ threshold: 0.1 });
   
   return (
     <div 
       ref={ref}
-      className={`transition-all duration-1000 ease-out transform ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+      className={`transition-all duration-700 cubic-bezier(0.175, 0.885, 0.32, 1.275) transform ${
+        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'
       } ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
@@ -79,8 +128,6 @@ const FadeIn = ({ children, delay = 0, className = "" }) => {
   );
 };
 
-// Komponen Modal Galeri: Menampilkan gambar dalam ukuran besar (Lightbox)
-// Memiliki tombol Next/Prev jika gambar lebih dari satu.
 const ImageGalleryModal = ({ isOpen, images, initialIndex, onClose }) => {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
 
@@ -88,13 +135,11 @@ const ImageGalleryModal = ({ isOpen, images, initialIndex, onClose }) => {
     setActiveIndex(initialIndex);
   }, [initialIndex, isOpen]);
 
-  // Fungsi untuk ganti gambar berikutnya
   const nextImage = (e) => {
     e.stopPropagation();
     setActiveIndex((prev) => (prev + 1) % images.length);
   };
 
-  // Fungsi untuk ganti gambar sebelumnya
   const prevImage = (e) => {
     e.stopPropagation();
     setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -103,306 +148,352 @@ const ImageGalleryModal = ({ isOpen, images, initialIndex, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 animate-in fade-in duration-300" onClick={onClose}>
-      {/* Tombol Close (X) */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-yellow-300/90 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
+      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+      
       <button 
         onClick={onClose} 
-        className="absolute top-6 right-6 text-white/70 hover:text-white p-2 rounded-full bg-white/10 transition-colors z-50"
+        className="absolute top-6 right-6 bg-black text-white p-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all z-50 rounded-lg"
       >
-        <X size={32} />
+        <X size={24} />
       </button>
 
-      <div className="relative w-full max-w-6xl h-full max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-        {/* Tombol navigasi Kiri/Kanan (hanya muncul jika gambar > 1) */}
-        {images.length > 1 && (
-          <>
-            <button 
-              onClick={prevImage} 
-              className="absolute left-2 md:-left-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-110 transition-all z-10 backdrop-blur-md"
-            >
-              <ChevronLeft size={32} />
-            </button>
-            <button 
-              onClick={nextImage} 
-              className="absolute right-2 md:-right-12 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 hover:scale-110 transition-all z-10 backdrop-blur-md"
-            >
-              <ChevronRight size={32} />
-            </button>
-          </>
-        )}
+      <div className="relative w-full max-w-5xl h-full max-h-[85vh] flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="relative bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-2 rounded-xl max-h-full max-w-full flex flex-col">
+            <div className="flex justify-between items-center mb-2 px-2 border-b-2 border-black pb-2 bg-gray-100 rounded-t-lg">
+                <span className="font-mono font-bold text-sm">GALLERY_VIEWER.EXE</span>
+                <span className="font-mono text-xs">{activeIndex + 1} / {images.length}</span>
+            </div>
 
-        {/* Gambar Utama yang ditampilkan */}
-        <img 
-          src={images[activeIndex]} 
-          alt={`Gallery ${activeIndex}`} 
-          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-fade-in"
-          // Fallback jika gambar gagal dimuat
-          onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80"; }}
-        />
+            <div className="relative overflow-hidden bg-gray-100 border-2 border-black rounded-lg flex-grow flex items-center justify-center">
+                {images.length > 1 && (
+                <>
+                    <button 
+                    onClick={prevImage} 
+                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all z-10 rounded-full"
+                    >
+                    <ChevronLeft size={24} />
+                    </button>
+                    <button 
+                    onClick={nextImage} 
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all z-10 rounded-full"
+                    >
+                    <ChevronRight size={24} />
+                    </button>
+                </>
+                )}
 
-        {/* Indikator titik-titik (Dots) di bawah gambar */}
-        <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 flex gap-2 overflow-x-auto max-w-full p-2 hide-scrollbar">
-          {images.map((_, idx) => (
-            <button
-              key={idx} 
-              onClick={(e) => { e.stopPropagation(); setActiveIndex(idx); }}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${idx === activeIndex ? 'bg-purple-500 w-8' : 'bg-white/30 hover:bg-white/60'}`}
-            />
-          ))}
+                <img 
+                src={images[activeIndex]} 
+                alt={`Gallery ${activeIndex}`} 
+                className="max-h-[70vh] w-auto object-contain mx-auto"
+                onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80"; }}
+                />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto max-w-full p-4 hide-scrollbar justify-center">
+            {images.map((_, idx) => (
+                <button
+                key={idx} 
+                onClick={(e) => { e.stopPropagation(); setActiveIndex(idx); }}
+                className={`w-3 h-3 border-2 border-black transition-all duration-300 ${idx === activeIndex ? 'bg-black scale-125' : 'bg-white hover:bg-gray-200'}`}
+                />
+            ))}
+            </div>
         </div>
       </div>
     </div>
   );
 };
 
-// Komponen Kartu Proyek (Project Card)
-// Digunakan di bagian "Proyek Unggulan". Menerima props seperti title, description, tags, dll.
-const ProjectCard = ({ title, category, description, tags, icon, color, images, heightClass = "h-64", aspectClass = "aspect-video", onOpenGallery }) => (
-  <div className="group relative bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] flex flex-col h-full">
-    {/* Efek gradient background saat hover */}
-    <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-br ${color.replace('border-', 'from-').replace('hover:border-', '')} to-transparent pointer-events-none`} />
-    
-    <div className="p-6 relative z-10 flex flex-col h-full">
-      <div className="flex justify-between items-start mb-4">
-        <div className="p-3 bg-slate-800 rounded-2xl text-white group-hover:scale-110 transition-transform duration-300 border border-white/5">
-          {icon}
-        </div>
-        <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-400">
-          {category}
-        </div>
-      </div>
+// STYLE CHANGE: Neo-Brutalist Card
+// Added 'links' prop
+const ProjectCard = ({ title, category, description, tags, icon, color, images, heightClass = "h-64", aspectClass = "aspect-video", onOpenGallery, links }) => {
+  const accentColor = color.includes('pink') ? 'bg-pink-400' : 
+                      color.includes('purple') ? 'bg-purple-400' :
+                      color.includes('blue') ? 'bg-blue-400' :
+                      color.includes('green') ? 'bg-green-400' :
+                      color.includes('orange') ? 'bg-orange-400' : 'bg-yellow-400';
+
+  return (
+    <div className="group relative h-full">
+      {/* Background Shadow Block */}
+      <div className={`absolute top-2 left-2 w-full h-full bg-black rounded-xl transition-all duration-300 group-hover:top-3 group-hover:left-3`}></div>
       
-      <h3 className="text-xl font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">{title}</h3>
-      <p className="text-slate-400 text-sm mb-6 leading-relaxed line-clamp-3">{description}</p>
-      
-      <div className="mt-auto">
-        {/* Container Gambar Thumbnail Proyek */}
-        <div className="mb-5 relative group/img overflow-hidden rounded-2xl border border-white/10">
-          {images && images.length > 0 ? (
-            <div 
-              className={`${aspectClass} ${heightClass} w-full cursor-pointer bg-slate-800`}
-              onClick={() => onOpenGallery(images, 0)}
-            >
-               {/* Overlay Icon External Link saat hover */}
-               <div className="absolute inset-0 bg-black/20 group-hover/img:bg-black/40 transition-colors z-10 flex items-center justify-center opacity-0 group-hover/img:opacity-100 duration-300">
-                  <div className="bg-white/10 backdrop-blur-md p-3 rounded-full border border-white/20 transform translate-y-4 group-hover/img:translate-y-0 transition-transform duration-300">
-                    <ExternalLink className="text-white" size={24} />
-                  </div>
-               </div>
-               <img 
-                 src={images[0]} 
-                 alt={title} 
-                 className="w-full h-full object-cover transform group-hover/img:scale-105 transition-transform duration-700 ease-out" 
-                 onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&q=80"; }}
-               />
-               {/* Indikator jumlah gambar (+2, +3, dst) */}
-               {images.length > 1 && (
-                 <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
-                   <ImageIcon size={12} /> 
-                   <span>+{images.length - 1}</span>
-                 </div>
-               )}
+      <div className="relative bg-white border-2 border-black rounded-xl overflow-hidden h-full flex flex-col transition-transform duration-300 group-hover:-translate-y-1 group-hover:-translate-x-1">
+        {/* Header Bar */}
+        <div className="border-b-2 border-black px-4 py-2 flex justify-between items-center bg-gray-50">
+            <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full border-2 border-black bg-red-400"></div>
+                <div className="w-3 h-3 rounded-full border-2 border-black bg-yellow-400"></div>
+                <div className="w-3 h-3 rounded-full border-2 border-black bg-green-400"></div>
             </div>
-          ) : (
-             <div className={`${heightClass} flex items-center justify-center text-slate-600 bg-slate-800/50`}>
-               No Image
-             </div>
-          )}
+            <div className={`px-2 py-0.5 border-2 border-black text-[10px] font-bold uppercase tracking-wider ${accentColor} rounded`}>
+                {category}
+            </div>
         </div>
-        
-        {/* Tags Teknologi (cth: React, Figma) */}
-        <div className="flex flex-wrap gap-2">
-          {tags.map((tag, index) => (
-            <span key={index} className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 bg-slate-800 rounded-md text-slate-400 border border-white/5">
-              {tag}
-            </span>
-          ))}
+
+        {/* Image Area */}
+        <div className="relative overflow-hidden border-b-2 border-black bg-gray-100 group/img">
+            {images && images.length > 0 ? (
+                <div 
+                    className={`${aspectClass} ${heightClass} w-full cursor-pointer relative`}
+                    onClick={() => onOpenGallery(images, 0)}
+                >
+                    <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors z-10 flex items-center justify-center">
+                        <div className="bg-white border-2 border-black p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] opacity-0 group-hover/img:opacity-100 transition-all duration-200 transform scale-75 group-hover/img:scale-100 rotate-3 group-hover/img:rotate-0">
+                            <span className="font-bold text-sm">VIEW PROJECT</span>
+                        </div>
+                    </div>
+                    <img 
+                        src={images[0]} 
+                        alt={title} 
+                        className="w-full h-full object-cover grayscale group-hover/img:grayscale-0 transition-all duration-500" 
+                        onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&q=80"; }}
+                    />
+                    {images.length > 1 && (
+                        <div className="absolute bottom-2 right-2 bg-white border-2 border-black px-2 py-1 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
+                            <ImageIcon size={12} /> +{images.length - 1}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className={`${heightClass} flex items-center justify-center border-dashed border-2 border-gray-300 m-4 rounded`}>
+                    <span className="font-mono text-gray-400">NO_IMAGE_DATA</span>
+                </div>
+            )}
+        </div>
+
+        {/* Content */}
+        <div className="p-5 flex flex-col flex-grow">
+            <div className="flex items-start justify-between mb-3">
+                <h3 className="text-xl font-black text-black leading-tight uppercase">{title}</h3>
+                <div className="bg-black text-white p-1.5 rounded border-2 border-transparent group-hover:border-black group-hover:bg-white group-hover:text-black transition-colors">
+                    {icon}
+                </div>
+            </div>
+            
+            <p className="text-gray-600 text-sm mb-4 font-medium leading-relaxed border-l-4 border-gray-200 pl-3 flex-grow">
+                {description}
+            </p>
+
+            <div className="mt-auto">
+                {/* TAGS SECTION */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                    {tags.map((tag, index) => (
+                        <span key={index} className="text-[10px] font-bold px-2 py-1 bg-gray-100 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+                            #{tag}
+                        </span>
+                    ))}
+                </div>
+
+                {/* BUTTON LINKS SECTION (Moved to Bottom) */}
+                {links && links.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-3 border-t-2 border-dashed border-gray-300">
+                        {links.map((link, i) => (
+                            <a
+                                key={i}
+                                href={link.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all ${link.className || 'bg-white hover:bg-gray-50'}`}
+                            >
+                                {link.icon}
+                                {link.text}
+                            </a>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-// Komponen Kartu Tech Stack (Keahlian)
+// STYLE CHANGE: Sticker Style
 const TechStackCard = ({ icon, name, desc }) => (
-  <div className="group p-2 bg-white/5 rounded-2xl border border-white/10 hover:border-purple-500/30 hover:bg-white/10 transition-all duration-300 flex items-center gap-2">
-    <div className="w-12 h-12 flex items-center justify-center bg-slate-800 rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-lg group-hover:shadow-purple-500/20 overflow-hidden shrink-0">
-       <img 
-        src={icon} 
-        alt={name} 
-        className="w-8 h-8 object-contain" 
-        onError={(e) => {
-          // Fallback ke ikon generik jika gambar ikon tidak ditemukan
-          e.target.style.display = 'none';
-          e.target.parentElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`;
-        }}
-      /> 
-    </div>
-    <div>
-      <h4 className="text-white font-bold text-sm group-hover:text-purple-400 transition-colors">{name}</h4>
-      <p className="text-slate-500 text-xs">{desc}</p>
+  <div className="group relative">
+    <div className="absolute inset-0 bg-black rounded-lg translate-x-1 translate-y-1"></div>
+    <div className="relative bg-white p-3 rounded-lg border-2 border-black flex items-center gap-3 hover:-translate-y-1 hover:-translate-x-1 transition-transform duration-200 cursor-default">
+        <div className="w-10 h-10 flex items-center justify-center bg-gray-100 border-2 border-black rounded p-1">
+            <img 
+                src={icon} 
+                alt={name} 
+                className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all" 
+                onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-black"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`;
+                }}
+            /> 
+        </div>
+        <div>
+            <h4 className="font-black text-sm uppercase">{name}</h4>
+            <span className="text-[10px] bg-yellow-300 px-1 border border-black font-bold">{desc}</span>
+        </div>
     </div>
   </div>
 );
 
-// Komponen Timeline (Pengalaman Kerja/Kepanitiaan)
+// STYLE CHANGE: Checklist / Connected Line Style
 const TimelineCard = ({ role, org, date, desc, highlight, evidenceLabel, images, onOpenGallery }) => (
-  <div className={`relative pl-8 pb-8 border-l-2 ${highlight ? 'border-purple-500' : 'border-slate-800'} transition-colors duration-300 group`}>
-    {/* Titik Point pada Timeline */}
-    <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 ${highlight ? 'bg-purple-500 border-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]' : 'bg-slate-900 border-slate-600 group-hover:border-purple-400 group-hover:bg-slate-800'} transition-all duration-300`}></div>
-    
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-      <h4 className={`text-lg font-bold ${highlight ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400' : 'text-white group-hover:text-purple-200'} transition-colors`}>{role}</h4>
-      <span className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded-md border border-white/5">{date}</span>
+  <div className="flex gap-4 group">
+    {/* Custom Bullet Line */}
+    <div className="flex flex-col items-center">
+        <div className={`w-6 h-6 rounded-none border-2 border-black ${highlight ? 'bg-purple-500' : 'bg-white group-hover:bg-gray-200'} flex items-center justify-center z-10 transition-colors`}>
+            {highlight && <div className="w-2 h-2 bg-white"></div>}
+        </div>
+        <div className="w-0.5 bg-black h-full border-l-2 border-dashed border-black min-h-[80px]"></div>
+    </div>
+
+    <div className="pb-8 flex-grow">
+        <div className="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg transition-transform hover:-translate-y-1">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
+                <div>
+                    <h4 className="text-lg font-black uppercase leading-none">{role}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Building2 size={14} className="text-black" />
+                        <span className="font-bold text-sm bg-gray-100 px-1 border border-black">{org}</span>
+                    </div>
+                </div>
+                <span className="text-xs font-mono font-bold bg-black text-white px-2 py-1 rounded self-start sm:self-auto transform -rotate-2">
+                    {date}
+                </span>
+            </div>
+            
+            <p className="text-sm font-medium text-gray-700 mt-3 mb-4">{desc}</p>
+            
+            {evidenceLabel && images && images.length > 0 && (
+                <div 
+                    onClick={() => onOpenGallery(images, 0)}
+                    className="inline-flex items-center gap-2 bg-yellow-300 border-2 border-black px-3 py-1.5 rounded cursor-pointer hover:bg-yellow-400 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-y-[2px] active:shadow-none"
+                >
+                    <ImageIcon size={14}/>
+                    <span className="text-xs font-bold uppercase underline decoration-2">Lihat Bukti</span>
+                    <span className="bg-white border border-black text-[10px] px-1 rounded-full">{images.length}</span>
+                </div>
+            )}
+        </div>
+    </div>
+  </div>
+);
+
+// STYLE CHANGE: Grid Block Style
+const OrgCard = ({ role, period, desc, images, onOpenGallery }) => (
+  <div className="bg-white border-2 border-black p-0 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all duration-200 flex flex-col h-full rounded-lg overflow-hidden">
+    <div className="bg-blue-300 border-b-2 border-black p-3 flex justify-between items-center">
+        <span className="font-mono text-xs font-bold">[ORG_DATA]</span>
+        <div className="flex gap-1">
+            <div className="w-2 h-2 rounded-full border border-black bg-white"></div>
+            <div className="w-2 h-2 rounded-full border border-black bg-white"></div>
+        </div>
     </div>
     
-    <div className="flex items-center gap-2 mb-3">
-       <Building2 size={14} className="text-slate-500" />
-       <p className="text-sm font-semibold text-slate-300">{org}</p>
+    <div className="p-5 flex-grow">
+        <h5 className="font-black text-lg mb-1 leading-tight">{role}</h5>
+        <span className="inline-block bg-black text-white text-[10px] font-mono px-1 mb-4">{period}</span>
+        <p className="text-sm font-medium text-gray-700 leading-snug">{desc}</p>
     </div>
     
-    <p className="text-slate-400 text-sm leading-relaxed mb-4">{desc}</p>
-    
-    {/* Menampilkan bukti (gambar) jika ada */}
-    {evidenceLabel && images && images.length > 0 && (
-      <div className="mt-3">
-         <div 
-           className="h-32 w-48 bg-slate-800 rounded-xl overflow-hidden border border-white/10 cursor-pointer hover:border-purple-500/50 transition-all relative group/img shadow-lg"
-           onClick={() => onOpenGallery(images, 0)}
-         >
-           <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors z-10 flex items-center justify-center opacity-0 group-hover/img:opacity-100">
-              <ExternalLink className="text-white" size={20} />
-           </div>
-           <img src={images[0]} alt="Bukti" className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-500" 
-              onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80"; }}
-           />
-           {images.length > 1 && (
-             <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
-               <ImageIcon size={10} /> +{images.length - 1}
-             </div>
-           )}
-         </div>
-      </div>
+    {images && images.length > 0 && (
+        <button 
+            onClick={() => onOpenGallery(images, 0)}
+            className="w-full py-2 bg-gray-100 hover:bg-yellow-300 border-t-2 border-black text-xs font-bold uppercase transition-colors flex items-center justify-center gap-2"
+        >
+            <Camera size={14}/> Dokumentasi
+        </button>
     )}
   </div>
 );
 
-// Komponen Kartu Organisasi (Grid Layout)
-const OrgCard = ({ role, period, desc, images, onOpenGallery }) => (
-  <div className="bg-slate-900/40 p-6 rounded-3xl border border-white/5 hover:border-purple-500/30 hover:bg-slate-900/20 transition-all duration-300 group flex flex-col h-full hover:-translate-y-1 hover:shadow-xl">
-    <div className="flex justify-between items-start mb-4">
-       <div>
-          <h5 className="font-bold text-white text-base leading-snug group-hover:text-purple-300 transition-colors">{role}</h5>
-          <span className="text-xs text-slate-500 mt-1 block">{period}</span>
-       </div>
-    </div>
-    <p className="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">{desc}</p>
-    
-    <div className="mt-auto pt-4 border-t border-white/5">
-      {images && images.length > 0 ? (
-        <div 
-          className="h-32 w-full bg-slate-950 rounded-2xl overflow-hidden relative cursor-pointer group/img border border-white/5 group-hover:border-white/10 transition-colors"
-          onClick={() => onOpenGallery(images, 0)}
-        >
-           <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 transition-colors z-10 flex items-center justify-center opacity-0 group-hover/img:opacity-100">
-              <ExternalLink className="text-white" size={16} />
-           </div>
-           <img 
-            src={images[0]} 
-            alt={role} 
-            className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-700" 
-            onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&q=80"; }}
-           />
-           {images.length > 1 && (
-             <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-md">
-               <ImageIcon size={10} /> +{images.length - 1}
-             </div>
-           )}
-        </div>
-      ) : (
-        <div className="h-32 w-full bg-slate-950 rounded-2xl border border-dashed border-slate-800 flex items-center justify-center">
-           <span className="text-xs text-slate-700 flex flex-col items-center gap-1"><Camera size={16}/> No Doc</span>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-// Komponen Kartu Sertifikasi (Horizontal Scroll)
+// STYLE CHANGE: Ticket / Coupon Style
 const CertCard = ({ title, subtitle, desc, color, icon, images, onOpenGallery }) => {
-    // Peta warna untuk tema kartu (hijau, oranye, biru, kuning)
-    const colorMap = {
-        green: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-        orange: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-        blue: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-        yellow: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20"
-    };
+    // Map simplified colors
+    const bgClass = color === 'green' ? 'bg-green-200' : 
+                    color === 'orange' ? 'bg-orange-200' : 
+                    color === 'blue' ? 'bg-blue-200' : 'bg-yellow-200';
 
     return (
-        <div className={`p-6 rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col h-full min-w-[320px] md:min-w-[360px] bg-slate-900/60 ${colorMap[color].replace('text-', 'border-').split(' ')[2]} hover:bg-slate-800/60`}>
-            <div className="flex items-center gap-4 mb-4">
-                <div className={`p-3 rounded-2xl ${colorMap[color]}`}>
-                    {icon}
-                </div>
-                <div>
-                    <h4 className="text-lg font-bold text-white leading-tight">{title}</h4>
-                    <p className="text-xs text-slate-400 mt-1">{subtitle}</p>
-                </div>
-            </div>
-            <p className="text-slate-400 text-sm mb-6 flex-grow leading-relaxed line-clamp-3">{desc}</p>
+        <div className="group relative min-w-[320px] h-full">
+            <div className={`absolute inset-0 border-2 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-xl`}></div>
             
-            <div className="mt-auto">
-                <div 
-                    className="w-full h-40 bg-slate-950 rounded-2xl overflow-hidden border border-white/5 group cursor-pointer relative"
-                    onClick={() => images && images.length > 0 && onOpenGallery(images, 0)}
-                >
-                    {images && images.length > 0 ? (
-                        <>
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors z-10 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                <ExternalLink className="text-white transform scale-75 group-hover:scale-100 transition-transform" />
-                            </div>
-                            <img 
-                                src={images[0]} 
-                                alt={title} 
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1579389083078-4e7018379f7e?w=400&q=80"; }}
-                            />
-                        </>
-                    ) : (
-                        <div className="flex items-center justify-center h-full">
-                           <Award className="text-slate-700" size={24}/>
+            <div className={`relative h-full flex flex-col p-5 border-2 border-black bg-white rounded-xl transition-transform duration-200 group-hover:-translate-y-1 group-hover:-translate-x-1 group-hover:shadow-none`}>
+                {/* Dashed Line Decoration */}
+                <div className="absolute top-0 right-8 w-0.5 h-full border-r-2 border-dashed border-gray-300 z-0"></div>
+                
+                <div className="relative z-10">
+                    <div className="flex items-start gap-3 mb-3">
+                        <div className={`p-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${bgClass} rounded-lg`}>
+                            {React.cloneElement(icon, { size: 20, strokeWidth: 2.5 })}
                         </div>
-                    )}
+                        <div className="pr-4">
+                            <h4 className="font-black text-base leading-tight uppercase">{title}</h4>
+                            <span className="text-xs font-bold bg-gray-100 px-1 mt-1 inline-block border border-black">{subtitle}</span>
+                        </div>
+                    </div>
+                    
+                    <p className="text-sm font-medium text-gray-600 mb-4 line-clamp-3 pr-4">{desc}</p>
+                </div>
+
+                <div className="mt-auto relative z-10 pr-4">
+                    <div 
+                        className="w-full h-32 border-2 border-black bg-gray-100 rounded-lg overflow-hidden relative cursor-pointer group/img"
+                        onClick={() => images && images.length > 0 && onOpenGallery(images, 0)}
+                    >
+                        {images && images.length > 0 ? (
+                            <>
+                                <div className="absolute inset-0 bg-yellow-400/80 border-2 border-black translate-y-full group-hover/img:translate-y-0 transition-transform duration-300 z-10 flex items-center justify-center">
+                                    <span className="font-black text-black uppercase tracking-wider">View Cert</span>
+                                </div>
+                                <img 
+                                    src={images[0]} 
+                                    alt={title} 
+                                    className="w-full h-full object-cover filter grayscale group-hover/img:grayscale-0 transition-all"
+                                    onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1579389083078-4e7018379f7e?w=400&q=80"; }}
+                                />
+                            </>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-50 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:8px_8px]">
+                               <Award size={24}/>
+                               <span className="text-[10px] font-mono mt-1">NO_PREVIEW</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-// Komponen Link Sosial Media (Bulat)
-const SocialLink = ({ href, icon, color }) => (
+const SocialLink = ({ href, icon }) => (
   <a 
     href={href} 
     target="_blank" 
     rel="noreferrer" 
-    className={`w-14 h-14 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-400 ${color} hover:text-white transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-lg`}
+    className="w-12 h-12 bg-white border-2 border-black flex items-center justify-center text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all rounded-lg group"
   >
-    {icon}
+    {React.cloneElement(icon, { className: "group-hover:scale-110 transition-transform" })}
   </a>
 );
 
-/* --- MAIN APP (KOMPONEN UTAMA) --- */
+/* --- MAIN APP --- */
 
 const App = () => {
-  // STATE MANAGEMENT (Penyimpanan Data Sementara)
-  const [activeSection, setActiveSection] = useState('home'); // Bagian mana yang sedang aktif
-  const [isMenuOpen, setIsMenuOpen] = useState(false);        // Apakah menu mobile terbuka
-  const [scrolled, setScrolled] = useState(false);            // Apakah user sudah scroll ke bawah (untuk navbar effect)
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);  // Apakah modal galeri terbuka
-  const [currentGalleryImages, setCurrentGalleryImages] = useState([]); // Gambar yang sedang ditampilkan di galeri
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);        // Indeks gambar aktif
+  const [activeSection, setActiveSection] = useState('home');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [currentGalleryImages, setCurrentGalleryImages] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Efek untuk mendeteksi scroll window
+  // Refs untuk Auto-Scroll
+  const projectScrollRef = useRef(null);
+  const certScrollRef = useRef(null);
+
+  // Implementasi Hook Auto-Scroll untuk kedua kolom
+  useAutoScroll(projectScrollRef, 0.5); // Kecepatan scroll 0.5
+  useAutoScroll(certScrollRef, 0.5);    // Kecepatan scroll 0.5
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -411,22 +502,19 @@ const App = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fungsi membuka galeri gambar
   const openGallery = (images, startIndex = 0) => {
     if (!images || images.length === 0) return;
     setCurrentGalleryImages(images);
     setCurrentImageIndex(startIndex);
     setIsGalleryOpen(true);
-    document.body.style.overflow = 'hidden'; // Mencegah background scroll saat modal terbuka
+    document.body.style.overflow = 'hidden';
   };
 
-  // Fungsi menutup galeri
   const closeGallery = () => {
     setIsGalleryOpen(false);
     document.body.style.overflow = 'unset';
   };
 
-  // Fungsi scroll halus ke bagian tertentu (Smooth Scroll)
   const scrollTo = (id) => {
     const element = document.getElementById(id);
     if (element) {
@@ -436,8 +524,6 @@ const App = () => {
     }
   };
 
-  // DAFTAR LINK NAVIGASI
-  // Ubah 'name' untuk mengganti teks menu, 'id' harus sesuai dengan id section di bawah
   const navLinks = [
     { name: 'Home', id: 'home' },
     { name: 'About', id: 'about' },
@@ -447,61 +533,28 @@ const App = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-slate-200 font-sans selection:bg-purple-500 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#fffdf5] text-black font-sans selection:bg-black selection:text-white overflow-x-hidden">
       
-      {/* GLOBAL STYLES (CSS Kustom) */}
+      {/* GLOBAL STYLES */}
       <style>{`
-        /* Animasi Blob (Bulatan warna-warni di background) */
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
+        /* CUSTOM SCROLLBAR - BLOCKY */
+        ::-webkit-scrollbar {
+          width: 12px;
+          height: 12px;
         }
-        .animate-blob {
-          animation: blob 7s infinite;
+        ::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-left: 2px solid black;
         }
-        .animation-delay-2000 {
-          animation-delay: 2s;
+        ::-webkit-scrollbar-thumb {
+          background: #22c55e;
+          border: 2px solid black;
         }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        
-        /* PENGATURAN SCROLLBAR (Batang Scroll) */
-        
-        /* MOBILE: Sembunyikan scrollbar agar swipe lebih bersih */
-        @media (max-width: 768px) {
-          .responsive-scrollbar::-webkit-scrollbar {
-            display: none;
-          }
-          .responsive-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #16a34a;
         }
 
-        /* DESKTOP: Tampilkan scrollbar kustom (Ungu) */
-        @media (min-width: 769px) {
-          .responsive-scrollbar::-webkit-scrollbar {
-            height: 10px; /* Sedikit dipertebal agar lebih mudah diklik */
-          }
-          .responsive-scrollbar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 6px;
-            margin: 0 20px;
-          }
-          .responsive-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(168, 85, 247, 0.3);
-            border-radius: 6px;
-            border: 2px solid rgba(15, 23, 42, 1); /* Border agar terlihat terpisah */
-          }
-          .responsive-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(168, 85, 247, 0.8);
-          }
-        }
-        
-        /* Utility class untuk menyembunyikan scrollbar sepenuhnya */
+        /* Hide Scrollbar util */
         .hide-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -509,313 +562,366 @@ const App = () => {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* Marquee Animation */
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 20s linear infinite;
+        }
       `}</style>
 
-      {/* BACKGROUND ANIMASI (Efek Blur Warna-Warni) */}
-      <div className="fixed inset-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full mix-blend-screen filter blur-[128px] opacity-30 animate-blob" />
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full mix-blend-screen filter blur-[128px] opacity-30 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500/20 rounded-full mix-blend-screen filter blur-[128px] opacity-30 animate-blob animation-delay-4000" />
-        {/* Overlay Noise Texture */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
+      {/* Background decoration: Dot Pattern */}
+      <div className="fixed inset-0 w-full h-full -z-10 pointer-events-none opacity-10" 
+           style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
       </div>
 
-      {/* NAVBAR (Navigasi Atas) */}
-      <nav className={`fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-5xl z-50 transition-all duration-300 ${scrolled ? 'bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl py-3 rounded-full' : 'py-5'}`}>
-        <div className="px-6 flex justify-between items-center">
-          {/* LOGO NAMA: Ubah nama Anda di sini */}
-          <div className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent cursor-pointer" onClick={() => scrollTo('home')}>
-            Rifqi<span className="text-white">.MT</span>
+      {/* Navbar - Retro Floating Box */}
+      <nav className={`fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-5xl z-50 transition-all duration-300 ${scrolled ? 'top-2' : 'top-6'}`}>
+        <div className="bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-lg px-4 py-3 flex justify-between items-center">
+          <div className="text-xl font-black italic tracking-tighter cursor-pointer flex items-center gap-1 hover:-rotate-2 transition-transform" onClick={() => scrollTo('home')}>
+            RIFQI<span className="bg-black text-white px-1 ml-1 not-italic transform -skew-x-12 inline-block">.MT</span>
           </div>
 
-          {/* Menu Desktop */}
-          <div className="hidden md:flex space-x-1">
+          <div className="hidden md:flex items-center gap-2">
             {navLinks.map((link) => (
               <button
                 key={link.name}
                 onClick={() => scrollTo(link.id)}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 ${activeSection === link.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                className={`px-4 py-1.5 text-sm font-bold uppercase border-2 transition-all duration-200 rounded ${activeSection === link.id ? 'bg-yellow-300 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent hover:border-black hover:bg-gray-100'}`}
               >
                 {link.name}
               </button>
             ))}
           </div>
 
-          {/* Tombol Hamburger Menu (Mobile) */}
-          <button className="md:hidden text-white p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center gap-2">
+             <a href="mailto:tampengrifqmubarak@gmail.com" className="hidden sm:flex bg-pink-400 border-2 border-black text-black font-bold text-sm px-3 py-1.5 rounded items-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all">
+                <Mail size={16}/> Hire Me!
+             </a>
+             <button className="md:hidden p-2 border-2 border-black rounded bg-gray-100 active:bg-black active:text-white transition-colors" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
-        {/* Menu Dropdown (Mobile) */}
+        {/* Mobile Menu Dropdown */}
         {isMenuOpen && (
-          <div className="absolute top-full mt-2 left-0 w-full bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col space-y-2 shadow-2xl animate-in slide-in-from-top-5">
+          <div className="absolute top-full mt-2 left-0 w-full bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-lg overflow-hidden animate-in slide-in-from-top-5">
             {navLinks.map((link) => (
               <button
                 key={link.name}
                 onClick={() => { scrollTo(link.id); setIsMenuOpen(false); }}
-                className="text-left px-4 py-3 rounded-xl text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+                className="w-full text-left px-6 py-4 font-bold uppercase hover:bg-yellow-300 border-b-2 border-black last:border-b-0 flex justify-between items-center group"
               >
                 {link.name}
+                <ArrowUpRight className="opacity-0 group-hover:opacity-100 transition-opacity" size={20}/>
               </button>
             ))}
           </div>
         )}
       </nav>
 
-      {/* --- SECTION HERO (BERANDA UTAMA) --- */}
-      <section id="home" className="min-h-screen flex items-center justify-center pt-24 relative">
-        <div className="container mx-auto px-6 flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
-          <FadeIn className="lg:w-1/2 text-center lg:text-left space-y-8">
-            {/* Status Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold tracking-wider uppercase mb-2">
-              <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"/> Available for work
+      {/* Hero Section */}
+      <section id="home" className="min-h-screen flex flex-col justify-center pt-24 pb-12 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-1/4 -left-10 w-40 h-40 bg-purple-400 rounded-full border-2 border-black mix-blend-multiply filter blur-xl opacity-50"></div>
+        <div className="absolute bottom-1/4 -right-10 w-60 h-60 bg-yellow-300 rounded-full border-2 border-black mix-blend-multiply filter blur-xl opacity-50"></div>
+        
+        <div className="container mx-auto px-6 flex flex-col-reverse lg:flex-row items-center gap-12 relative z-10">
+          <Reveal className="lg:w-1/2 text-center lg:text-left space-y-6">
+            <div className="inline-block bg-white border-2 border-black px-4 py-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-2">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse border border-black"></span> 
+                Status: Available for work
+              </span> 
             </div>
             
-            {/* Judul Utama / Nama */}
-            <h1 className="text-5xl lg:text-7xl font-bold leading-tight tracking-tight">
-              Hi, I'm <br />
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent animate-gradient-x">
-                Rifqi Mubarak Tampeng
-              </span>
-            </h1>
+            <div className="relative">
+                <h1 className="text-5xl lg:text-8xl font-black leading-none tracking-tighter mb-2 text-transparent bg-clip-text bg-black" style={{WebkitTextStroke: '2px black'}}>
+                  RIFQI M.
+                </h1>
+                <h1 className="text-5xl lg:text-8xl font-black leading-none tracking-tighter text-black absolute top-1 left-1 -z-10 opacity-0 lg:opacity-100 text-stroke">
+                   RIFQI M.
+                </h1>
+                <p className="text-2xl lg:text-4xl font-bold bg-yellow-300 inline-block px-2 border-2 border-black transform rotate-1">
+                   TAMPENG
+                </p>
+            </div>
             
-            {/* Deskripsi Singkat */}
-            <p className="text-lg text-slate-400 max-w-xl mx-auto lg:mx-0 leading-relaxed pt-4">
-              Mahasiswa Teknik Komputer (IPK 3.50) dengan spesialisasi di <span className="text-white font-medium">UI/UX Design</span>, <span className="text-white font-medium">3D Modeling</span>, dan <span className="text-white font-medium">Low-Code Dev</span>.
-            </p>
+            <div className="bg-white border-2 border-black p-4 lg:mr-12 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-xl relative">
+                <div className="absolute -top-3 -right-3 bg-blue-400 border-2 border-black p-1.5 rounded-full z-10">
+                    <Terminal size={20} className="text-white"/>
+                </div>
+                <p className="text-lg font-medium leading-relaxed">
+                Mahasiswa Teknik Komputer (IPK 3.50). Spesialisasi: <span className="font-bold underline decoration-pink-500 decoration-4">UI/UX Design</span>, <span className="font-bold underline decoration-blue-500 decoration-4">3D Modeling</span>, & <span className="font-bold underline decoration-green-500 decoration-4">Low-Code Dev</span>.
+                </p>
+            </div>
             
-            {/* Tombol Aksi (CTA) */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-6">
-              <button onClick={() => scrollTo('projects')} className="group px-8 py-3.5 bg-white text-black rounded-full font-bold transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center gap-2">
-                Lihat Proyek <MousePointer2 size={18} className="group-hover:translate-x-1 transition-transform"/>
+            <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-4">
+              <button onClick={() => scrollTo('projects')} className="group px-8 py-4 bg-black text-white text-lg font-bold uppercase border-2 border-black rounded shadow-[6px_6px_0px_0px_#22d3ee] hover:shadow-[2px_2px_0px_0px_#22d3ee] hover:translate-x-[4px] hover:translate-y-[4px] transition-all flex items-center gap-2">
+                Lihat Proyek <MousePointer2 size={20} className="group-hover:rotate-12 transition-transform" />
               </button>
-              <button onClick={() => scrollTo('experience')} className="px-8 py-3.5 bg-white/5 border border-white/10 hover:border-white/30 text-white rounded-full font-medium transition-all hover:bg-white/10 hover:scale-105">
+              <button onClick={() => scrollTo('experience')} className="px-8 py-4 bg-white text-black text-lg font-bold uppercase border-2 border-black rounded shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
                 Pengalaman
               </button>
             </div>
 
-            {/* Ikon Sosial Media di Hero */}
-            <div className="flex items-center justify-center lg:justify-start gap-4 pt-8">
+            <div className="flex items-center justify-center lg:justify-start gap-3 pt-6">
+               <span className="font-mono text-xs font-bold bg-black text-white px-2 py-1 transform -rotate-3">CONNECT:</span>
                {[
-                 { icon: <Github size={22}/>, href: "#" },
-                 { icon: <Instagram size={22}/>, href: "https://www.instagram.com/rifqiimt/" },
-                 { icon: <Linkedin size={22}/>, href: "https://www.linkedin.com/in/rifqiimt/" },
-                 { icon: <Mail size={22}/>, href: "mailto:tampengrifqmubarak@gmail.com" },
-                 { icon: <Phone size={22}/>, href: "https://wa.me/85214006701" }
+                 { icon: <Github size={20}/>, href: "https://github.com/rifqiimt" },
+                 { icon: <Instagram size={20}/>, href: "https://www.instagram.com/rifqiimt/" },
+                 { icon: <Linkedin size={20}/>, href: "https://www.linkedin.com/in/rifqiimt/" },
+                 { icon: <Mail size={20}/>, href: "mailto:tampengrifqmubarak@gmail.com" },
+                 { icon: <Phone size={20}/>, href: "https://wa.me/85214006701" }
                ].map((social, idx) => (
-                 <a key={idx} href={social.href} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white hover:scale-110 transition-all duration-300">
-                   {social.icon}
-                 </a>
+                 <SocialLink key={idx} href={social.href} icon={social.icon} />
                ))}
             </div>
-          </FadeIn>
+          </Reveal>
 
-          {/* Bagian Foto Profil */}
-          <FadeIn delay={200} className="lg:w-1/2 flex justify-center relative">
-            <div className="left-20 relative w-72 h-72 lg:w-96 lg:h-96 group">
-              {/* Spinning Glow Ring (Cincin Berputar) */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+          <Reveal delay={200} className="lg:w-1/2 flex justify-center relative">
+            <div className="relative w-80 h-80 lg:w-[28rem] lg:h-[28rem]">
+              {/* Brutalist Abstract Shapes */}
+              <div className="absolute top-0 right-0 w-full h-full bg-blue-400 border-2 border-black rounded-full mix-blend-normal z-0 translate-x-4 translate-y-4"></div>
               
-              {/* Gambar Profil Utama */}
-              {/* Ganti 'pp.jpeg' dengan file foto Anda sendiri */}
-              <div className="relative w-full h-full rounded-full border-4 border-slate-800/80 overflow-hidden shadow-2xl">
+              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-black bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] z-10 hover:scale-105 transition-transform duration-500">
                  <img 
                   src="pp.jpeg" 
                   alt="Rifqi Mubarak" 
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  onError={(e) => {e.target.src = "https://api.dicebear.com/9.x/avataaars/svg?seed=Rifqi"}} // Fallback avatar kartun jika foto tidak ada
+                  className="w-full h-full object-cover"
+                  onError={(e) => {e.target.src = "https://api.dicebear.com/9.x/avataaars/svg?seed=Rifqi"}} 
                 />
               </div>
 
-              {/* Lencana Mengambang (Floating Icons) */}
-              <div className="absolute top-8 right-4 p-3 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl animate-bounce" style={{ animationDuration: '3s' }}>
-                <Figma className="text-pink-400" size={24} />
+              {/* Floating Elements */}
+              <div className="absolute -right-4 top-10 bg-white border-2 border-black p-3 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 flex items-center gap-2 transform rotate-3 animate-bounce" style={{animationDuration: '3s'}}>
+                 <Figma size={24} className="text-black"/>
+                 <span className="font-black text-xs uppercase">UI/UX<br/>MASTER</span>
               </div>
-              <div className="absolute top-1/2 -left-8 p-3 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl animate-bounce" style={{ animationDuration: '4s' }}>
-                <Box className="text-blue-400" size={24} />
-              </div>
-              <div className="absolute bottom-8 right-2 p-3 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl animate-bounce" style={{ animationDuration: '5s' }}>
-                <Cpu className="text-purple-400" size={24} />
+              
+              <div className="absolute -left-2 bottom-12 bg-yellow-300 border-2 border-black p-3 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 flex items-center gap-2 transform -rotate-2 animate-bounce" style={{animationDuration: '4s'}}>
+                 <Box size={24} className="text-black"/>
+                 <span className="font-black text-xs uppercase">3D<br/>ARTIST</span>
               </div>
             </div>
-          </FadeIn>
+          </Reveal>
         </div>
-
-        {/* Indikator Panah Bawah */}
-        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce hidden lg:block text-slate-500">
-          <ChevronDown size={24} />
+        
+        {/* Infinite Marquee Banner */}
+        <div className="absolute bottom-8 left-0 w-full bg-black border-y-2 border-black py-2 transform -rotate-1 scale-105 z-20 overflow-hidden">
+            <div className="flex animate-marquee whitespace-nowrap">
+                {[...Array(10)].map((_, i) => (
+                    <span key={i} className="text-white font-mono font-bold text-lg mx-4 flex items-center gap-4">
+                        DESIGN <Zap size={16} className="text-yellow-400"/> CODE <Zap size={16} className="text-yellow-400"/> CREATE <Zap size={16} className="text-yellow-400"/>
+                    </span>
+                ))}
+            </div>
         </div>
       </section>
 
-      {/* --- SECTION ABOUT & SKILLS (TENTANG SAYA) --- */}
-      <section id="about" className="py-24">
+      {/* About & Skills */}
+      <section id="about" className="py-24 bg-purple-50 border-t-4 border-black relative">
+        <div className="absolute top-0 left-0 w-full h-4 bg-[repeating-linear-gradient(45deg,black,black_10px,transparent_10px,transparent_20px)] opacity-20"></div>
+        
         <div className="container mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4">Tentang <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Saya</span></h2>
-              <div className="w-24 h-1.5 bg-gradient-to-r from-purple-500 to-blue-500 mx-auto rounded-full"></div>
+          <Reveal>
+             <div className="flex flex-col items-center mb-16">
+                <h2 className="text-5xl md:text-6xl font-black uppercase text-center bg-white border-2 border-black px-6 py-2 shadow-[6px_6px_0px_0px_#f472b6] transform -rotate-1">
+                    Tentang Saya
+                </h2>
+             </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* Text Content */}
+            <div className="lg:col-span-7">
+               <Reveal delay={100}>
+                  <div className="bg-white border-2 border-black p-6 md:p-8 rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative">
+                    <QuoteIcon className="absolute -top-4 -left-4 w-10 h-10 bg-yellow-400 border-2 border-black text-black p-2 rounded-full z-10" />
+                    <div className="prose prose-lg text-black font-medium leading-relaxed space-y-4">
+                        <p>
+                        Saya adalah mahasiswa S1 Teknik Komputer berprestasi dengan <span className="bg-green-200 px-1 border border-black font-bold">IPK 3.50/4.00</span>. Saya memiliki passion yang kuat dalam menciptakan solusi digital yang estetis dan fungsional.
+                        </p>
+                        <p>
+                        Keahlian saya mencakup perancangan antarmuka pengguna (UI/UX) yang intuitif, pemodelan 3D, hingga pengembangan sistem berbasis IoT dan aplikasi Full Stack Low-Code.
+                        </p>
+                        <p>
+                        Selain teknis, saya memiliki jiwa kepemimpinan yang teruji, pernah memimpin tim hingga <span className="bg-blue-200 px-1 border border-black font-bold">120 orang</span> sebagai Ketua Pelaksana acara tingkat nasional (CMD 2025).
+                        </p>
+                    </div>
+                  </div>
+               </Reveal>
+               
+               <Reveal delay={200} className="mt-8">
+                 <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { val: "3.50", label: "GPA Score", color: "bg-pink-300" },
+                      { val: "120+", label: "Tim Dipimpin", color: "bg-blue-300" },
+                      { val: "6+", label: "Proyek Selesai", color: "bg-green-300" }
+                    ].map((stat, i) => (
+                      <div key={i} className={`p-4 border-2 border-black text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${stat.color} rounded-lg`}>
+                         <h3 className="text-3xl font-black text-black">{stat.val}</h3>
+                         <p className="text-xs font-bold uppercase border-t-2 border-black mt-1 pt-1">{stat.label}</p>
+                      </div>
+                    ))}
+                 </div>
+               </Reveal>
             </div>
-          </FadeIn>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <FadeIn delay={100}>
-              <div className="space-y-6 text-slate-300 leading-relaxed text-lg">
-                <p>
-                  Saya adalah mahasiswa S1 Teknik Komputer berprestasi dengan <strong>IPK 3.50/4.00</strong>. Saya memiliki passion yang kuat dalam menciptakan solusi digital yang estetis dan fungsional.
-                </p>
-                <p>
-                  Keahlian saya mencakup perancangan antarmuka pengguna (UI/UX) yang intuitif, pemodelan 3D, hingga pengembangan sistem berbasis IoT dan aplikasi Full Stack Low-Code.
-                </p>
-                <p>
-                  Selain teknis, saya memiliki jiwa kepemimpinan yang teruji, pernah memimpin tim hingga <strong>120 orang</strong> sebagai Ketua Pelaksana acara tingkat nasional (CMD 2025).
-                </p>
-
-                {/* Statistik Singkat */}
-                <div className="flex gap-6 pt-4">
-                  <div className="text-center">
-                    <h3 className="text-3xl font-bold text-white">3.50</h3>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">GPA</p>
-                  </div>
-                  <div className="w-px bg-white/10 h-10"></div>
-                  <div className="text-center">
-                    <h3 className="text-3xl font-bold text-white">120+</h3>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Tim Dipimpin</p>
-                  </div>
-                  <div className="w-px bg-white/10 h-10"></div>
-                  <div className="text-center">
-                    <h3 className="text-3xl font-bold text-white">6+</h3>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Proyek</p>
-                  </div>
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Grid Tech Stack (Keahlian/Software) */}
-            <FadeIn delay={300}>
-              <div className="bg-slate-900/50 backdrop-blur-sm p-8 rounded-3xl border border-white/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl"></div>
-                <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                  <Zap className="text-yellow-400 fill-yellow-400" size={24}/> Tech Stack
-                </h3>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <TechStackCard icon="figma.png" name="Figma" desc="Design" />
-                  <TechStackCard icon="https://cdn.simpleicons.org/unity/FFFFFF" name="Unity" desc="Game" />
-                  <TechStackCard icon="https://cdn.simpleicons.org/blender/E87D0D" name="Blender" desc="3D" />
-                  <TechStackCard icon="mesh.png" name="Meshroom" desc="Scan" />
-                  <TechStackCard icon="mendix.jpeg" name="Mendix" desc="Low-Code" />
-                  <TechStackCard icon="canva.png" name="Canva" desc="Graphic" />
-                </div>
-              </div>
-            </FadeIn>
+            {/* Tech Stack Grid - Sticker Layout */}
+            <div className="lg:col-span-5">
+               <Reveal delay={300}>
+                 <div className="bg-gray-100 border-2 border-black p-6 rounded-xl relative">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-1 text-sm font-bold uppercase rounded border-2 border-white transform skew-x-12">
+                         My Arsenal
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                      <TechStackCard icon="figma.png" name="Figma" desc="Design" />
+                      <TechStackCard icon="unity.png" name="Unity" desc="Augmented Reality" />
+                      <TechStackCard icon="blender.png" name="Blender" desc="3D" />
+                      <TechStackCard icon="mesh.png" name="Meshroom" desc="Photogrammetry" />
+                      <TechStackCard icon="mendix.jpeg" name="Mendix" desc="Low-Code" />
+                      <TechStackCard icon="canva.png" name="Canva" desc="Graphic" />
+                    </div>
+                 </div>
+               </Reveal>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* --- SECTION PROJECTS (PROYEK - HORIZONTAL SLIDER) --- */}
-      <section id="projects" className="py-24 relative">
+      {/* Projects */}
+      <section id="projects" className="py-24 bg-[#fffdf5] overflow-hidden">
         <div className="container mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-12">
-               <h2 className="text-3xl md:text-5xl font-bold mb-4">Proyek <span className="text-blue-400">Unggulan</span></h2>
-               <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-               Geser untuk melihat bukti nyata kompetensi saya dalam pengembangan aplikasi, desain UI/UX, dan sistem IoT.
-               </p>
+          <Reveal>
+            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+               <div>
+                 <div className="flex items-center gap-2 mb-2">
+                    <div className="h-1 w-12 bg-black"></div>
+                    <span className="font-mono font-bold uppercase text-sm">Selected Works</span>
+                 </div>
+                 <h2 className="text-4xl md:text-5xl font-black text-black leading-none">PROYEK <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500" style={{WebkitTextStroke: '1px black'}}>UNGGULAN</span></h2>
+               </div>
+               
+               <div className="hidden md:flex gap-2">
+                  <div className="px-4 py-2 border-2 border-black font-bold text-xs uppercase bg-gray-100">Auto Scroll Active</div>
+               </div>
             </div>
-          </FadeIn>
+          </Reveal>
 
-          {/* SLIDER WRAPPER - Kontainer Scroll Horizontal */}
-          <div className="w-full overflow-x-auto pb-12 responsive-scrollbar snap-x snap-mandatory">
-            <div className="flex gap-4 w-max">
+          {/* Menambahkan ref={projectScrollRef} dan menghapus 'snap-x snap-mandatory' untuk scroll halus */}
+          <div 
+             ref={projectScrollRef}
+             className="w-full overflow-x-auto pb-16 pt-4 px-4 -mx-4 responsive-scrollbar"
+          >
+            <div className="flex gap-8 w-max">
               
-              {/* Item Proyek 1 */}
-              <div className="w-[320px] md:w-[450px] snap-center">
+              <div className="w-[340px] md:w-[400px] flex-shrink-0">
                 <ProjectCard 
-                  title="Lifegen - Health Tracker"
+                  title="Lifegen App"
                   category="UI/UX Design"
                   description="Aplikasi pelacak kesehatan dan kalori harian dengan antarmuka bersih untuk memotivasi gaya hidup sehat."
-                  tags={['Figma', 'Mobile App', 'Health']}
-                  icon={<Smartphone className="text-pink-400" size={28} />}
-                  color="border-pink-500"
-                  images={["life.png"]} // Masukkan nama file gambar di sini
+                  tags={['Figma', 'Mobile', 'Health']}
+                  icon={<Smartphone className="text-white" size={20} />}
+                  color="pink"
+                  images={["life.png"]} 
                   onOpenGallery={openGallery}
-                  heightClass="h-72"
+                  heightClass="h-56"
+                  links={[
+                    { text: "Figma Prototype", url: "https://www.figma.com/proto/MIYprCXiJ8d9SDMZA5kMYT/Lifegen?node-id=48-3636&p=f&t=vXSOTZWg6oxs5i8D-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=48%3A3636&show-proto-sidebar=1", icon: <Figma size={12}/> },
+                  ]}
                 />
               </div>
 
-              {/* Item Proyek 2 */}
-              <div className="w-[320px] md:w-[450px] snap-center">
+              <div className="w-[340px] md:w-[400px] flex-shrink-0">
                 <ProjectCard 
-                  title="LandConnect Marketplace"
-                  category="Marketplace UI/UX"
+                  title="LandConnect"
+                  category="Marketplace"
                   description="Platform jual beli lahan strategis dengan fitur peta interaktif untuk memudahkan pencarian lokasi."
-                  tags={['Figma', 'Web', 'Marketplace']}
-                  icon={<Briefcase className="text-purple-400" size={28} />}
-                  color="border-purple-500"
+                  tags={['Figma', 'Web', 'Map']}
+                  icon={<Briefcase className="text-white" size={20} />}
+                  color="purple"
                   images={["land.png"]}
                   onOpenGallery={openGallery}
-                  heightClass="h-72"
+                  heightClass="h-56"
+                  links={[
+                    { text: "Figma Prototype", url: "https://www.figma.com/proto/OGf7IzSdu9WjrTlVOI0xP9/LandConnect?node-id=747-3006&t=dyPSPDRSZXDFVWfj-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=747%3A3006", icon: <Figma size={12}/> },
+                  ]}
                 />
               </div>
 
-              {/* Item Proyek 3 */}
-              <div className="w-[320px] md:w-[450px] snap-center">
+              <div className="w-[340px] md:w-[400px] flex-shrink-0">
                 <ProjectCard 
-                  title="WeatherFit App"
-                  category="Full Stack App"
+                  title="WeatherFit"
+                  category="Full Stack"
                   description="Aplikasi rekomendasi olahraga berbasis cuaca real-time menggunakan API cuaca dan geolokasi."
-                  tags={['Mendix', 'API', 'Low-Code']}
-                  icon={<ExternalLink className="text-blue-400" size={28} />}
-                  color="border-blue-500"
+                  tags={['Mendix', 'API', 'Code']}
+                  icon={<ExternalLink className="text-white" size={20} />}
+                  color="blue"
                   images={["https://images.unsplash.com/photo-1592210454359-9043f067919b?w=400&q=80"]}
                   onOpenGallery={openGallery}
-                  heightClass="h-72"
+                  heightClass="h-56"
+                  links={[
+                    { text: "Mendix App", url: "#", icon: <ExternalLink size={12}/>, className: "bg-blue-100 hover:bg-blue-200" }
+                  ]}
                 />
               </div>
 
-              {/* Item Proyek 4 */}
-              <div className="w-[320px] md:w-[450px] snap-center">
+              <div className="w-[340px] md:w-[400px] flex-shrink-0">
                 <ProjectCard 
-                  title="Smart Water Metering"
-                  category="Embedded System"
+                  title="Smart Meter"
+                  category="Embedded"
                   description="Sistem monitoring penggunaan air berbasis Arduino Uno untuk mencegah pemborosan air rumah tangga."
                   tags={['Arduino', 'C++', 'IoT']}
-                  icon={<Cpu className="text-cyan-400" size={28} />}
-                  color="border-cyan-500"
-                  images={["swms.jpeg", "swm1.jpeg", "swm2.jpeg", "swm3.jpeg"]} // Contoh multiple images
+                  icon={<Cpu className="text-white" size={20} />}
+                  color="green"
+                  images={["swms.jpeg", "swm1.jpeg", "swm2.jpeg", "swm3.jpeg"]} 
                   onOpenGallery={openGallery}
-                  heightClass="h-72"
+                  heightClass="h-56"
+                  links={[
+                    { text: "Arduino Code", url: "#", icon: <Code size={12}/> },
+                    { text: "Demo", url: "#", icon: <Youtube size={12}/>, className: "bg-red-100 hover:bg-red-200" }
+                  ]}
                 />
               </div>
 
-              {/* Item Proyek 5 */}
-              <div className="w-[320px] md:w-[450px] snap-center">
+              <div className="w-[340px] md:w-[400px] flex-shrink-0">
                 <ProjectCard 
-                  title="BridgeGuard System"
+                  title="BridgeGuard"
                   category="IoT Solution"
                   description="Perangkat pendeteksi getaran jembatan dini menggunakan ESP32 dan sensor akselerometer ADXL."
-                  tags={['ESP32', 'Safety', 'Hardware']}
-                  icon={<ExternalLink className="text-green-400" size={28} />}
-                  color="border-green-500"
-                  images={["https://images.unsplash.com/photo-1513828583688-601bf3925e2e?w=400&q=80"]}
+                  tags={['ESP32', 'Safety', 'HW']}
+                  icon={<ExternalLink className="text-white" size={20} />}
+                  color="green"
+                  images={["bg.jpeg"]}
                   onOpenGallery={openGallery}
-                  heightClass="h-72"
+                  heightClass="h-56"
+                  links={[
+                    { text: "Github", url: "https://github.com/rifqiimt/BridgeGuard.git", icon: <Github size={12}/> },
+                    { text: "Demo Video", url: "https://youtube.com/@muhammadabiyyu3010?si=cWjiHW9ce7i0kfPy", icon: <Youtube size={12}/>, className: "bg-red-100 hover:bg-red-200" }
+                  ]}
                 />
               </div>
 
-              {/* Item Proyek 6 */}
-              <div className="w-[320px] md:w-[450px] snap-center">
+              <div className="w-[340px] md:w-[400px] flex-shrink-0">
                 <ProjectCard 
                   title="AR BMKG Tools"
-                  category="Augmented Reality"
+                  category="AR / VR"
                   description="Aplikasi edukasi AR markerless untuk visualisasi alat-alat meteorologi BMKG secara interaktif 3D."
-                  tags={['AR', 'Unity', 'Education']}
-                  icon={<Box className="text-orange-400" size={28} />}
-                  color="border-orange-500"
+                  tags={['AR', 'Unity', 'Edu']}
+                  icon={<Box className="text-white" size={20} />}
+                  color="orange"
                   images={["https://images.unsplash.com/photo-1626379953822-baec19c3accd?w=400&q=80"]}
                   onOpenGallery={openGallery}
-                  heightClass="h-72"
+                  heightClass="h-56"
+                  links={[
+                    { text: "Download APK", url: "#", icon: <Smartphone size={12}/>, className: "bg-green-100 hover:bg-green-200" },
+                    { text: "Preview", url: "#", icon: <Youtube size={12}/>, className: "bg-red-100 hover:bg-red-200" }
+                  ]}
                 />
               </div>
 
@@ -824,41 +930,124 @@ const App = () => {
         </div>
       </section>
 
-      {/* --- SECTION EXPERIENCE (PENGALAMAN) --- */}
-      <section id="experience" className="py-24 bg-slate-900/30">
+      {/* Experience Section */}
+      <section id="experience" className="py-24 bg-blue-50 border-y-4 border-black">
         <div className="container mx-auto px-6">
-          <FadeIn>
-            <div className="text-center mb-20">
-              <h2 className="text-3xl md:text-5xl font-bold mb-4">Pengalaman & <span className="text-pink-400">Jejak Langkah</span></h2>
+          <Reveal>
+            <div className="mb-16 flex flex-col items-center">
+              <h2 className="text-4xl font-black text-black mb-2 uppercase border-b-4 border-black pb-2">Pengalaman</h2>
             </div>
-          </FadeIn>
+          </Reveal>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          {/* SUB BAB BARU: KERJA PRAKTIK BMKG */}
+          <Reveal delay={100} className="mb-20">
+            <div className="relative max-w-5xl mx-auto">
+                <div className="absolute -top-5 -left-2 md:-left-4 bg-green-400 border-2 border-black px-4 py-1.5 font-black uppercase text-sm transform -rotate-1 z-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    Kerja Praktik (Internship)
+                </div>
+                
+                <div className="bg-white border-2 border-black p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all rounded-lg relative overflow-hidden group">
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+                    
+                    <div className="flex flex-col md:flex-row gap-8 relative z-10">
+                        {/* Logo / Icon Area - MODIFIED to use Image from Directory */}
+                        <div className="w-24 h-24 shrink-0 bg-white border-2 border-black flex items-center justify-center p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rotate-2 group-hover:rotate-0 transition-transform overflow-hidden">
+                            {/* GANTI 'bmkg_logo.png' DENGAN NAMA FILE LOGO ANDA */}
+                            <img 
+                                src="bmkg.png" 
+                                alt="BMKG Logo" 
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                    // Fallback ke icon CloudSun jika gambar tidak ditemukan
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-black"><path d="M17.5 19c0-1.7-1.3-3-3-3h-1.1c-.2-2.3-2.1-4-4.4-4-2.5 0-4.5 1.8-4.9 4.2C2.3 16.5 1 17.9 1 19.5c0 1.9 1.6 3.5 3.5 3.5h13c1.9 0 3.5-1.6 3.5-3.5z"/><path d="M12 2v3"/><path d="M12 10v2"/><path d="M12 14v.01"/><path d="M4.93 4.93l1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>`;
+                                }}
+                            />
+                        </div>
+                        
+                        <div className="flex-grow">
+                            <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
+                                <div>
+                                    <h3 className="text-3xl font-black uppercase leading-none mb-2">BMKG Aceh</h3>
+                                    <div className="inline-block bg-gray-100 border border-black px-2 py-0.5">
+                                        <p className="font-bold text-sm text-gray-800">Stasiun Meteorologi Kelas I Sultan Iskandar Muda</p>
+                                    </div>
+                                </div>
+                                <span className="font-mono font-bold bg-black text-white px-4 py-2 transform rotate-2 text-sm shadow-[3px_3px_0px_0px_#22c55e] border border-transparent">
+                                    2024
+                                </span>
+                            </div>
+
+                            <div className="bg-green-50 border-l-4 border-black p-5 mb-4 relative">
+                                <div className="absolute -left-[5px] top-0 w-2 h-2 bg-black"></div>
+                                <div className="absolute -left-[5px] bottom-0 w-2 h-2 bg-black"></div>
+                                
+                                <span className="text-xs font-black uppercase tracking-widest text-green-700 mb-2 block border-b-2 border-green-200 w-fit pb-1">
+                                    Judul Proyek Akhir
+                                </span>
+                                <h4 className="font-bold text-lg md:text-xl leading-tight text-black">
+                                    "Pemanfaatan Augmented Reality Terhadap Pengenalan Alat Kerja Pada Stasiun Meteorologi Kelas I Sultan Iskandar Muda Banda Aceh"
+                                </h4>
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mt-2">
+                                <p className="text-gray-700 font-medium text-sm leading-relaxed max-w-2xl">
+                                    Mengembangkan media interaktif berbasis AR untuk memvisualisasikan alat meteorologi secara 3D, meningkatkan pemahaman teknis bagi staf dan pengunjung stasiun.
+                                </p>
+                            </div>
+
+                            {/* DOCUMENTATION GALLERY SECTION */}
+                            <div className="mt-6 border-t-2 border-black pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold px-2 py-1 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">#AugmentedReality</span>
+                                    <span className="text-[10px] font-bold px-2 py-1 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">#Unity3D</span>
+                                </div>
+                                
+                                <button 
+                                    // MASUKKAN NAMA FILE FOTO DOKUMENTASI ANDA DI DALAM ARRAY DI BAWAH INI
+                                    onClick={() => openGallery(["bmkg1.jpg"], 0)} 
+                                    className="group relative inline-flex items-center gap-2 bg-yellow-300 border-2 border-black px-5 py-2 rounded font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-yellow-400 transition-all"
+                                >
+                                    <ImageIcon size={16} />
+                                    Lihat Galeri
+                                    {/* Badge jumlah foto */}
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-black transform group-hover:scale-110 transition-transform">
+                                        3
+                                    </span>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
             
-            {/* Kolom Kiri: Timeline Kepanitiaan */}
-            <FadeIn delay={200}>
-              <div className="bg-slate-900/40 p-8 rounded-3xl border border-white/5">
-                <h3 className="text-2xl font-bold mb-8 flex items-center gap-3 text-white">
-                  <span className="p-2 bg-purple-500/20 rounded-lg text-purple-400"><Users size={24}/></span>
-                  Kepanitiaan (Event)
-                </h3>
-                <div className="space-y-2">
-                   {/* Item Timeline */}
+            {/* Column 1: Event */}
+            <Reveal delay={200}>
+              <div className="relative">
+                <div className="absolute -top-4 -left-4 bg-purple-400 border-2 border-black px-4 py-1 font-black uppercase text-sm transform -rotate-3 z-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    Kepanitiaan
+                </div>
+                <div className="border-l-4 border-black pl-8 pt-8 space-y-6">
                    <TimelineCard 
                       role="Ketua Pelaksana" 
                       org="CMD 2025" 
                       date="Okt 2025" 
-                      desc="Memimpin acara nasional (UI/UX, Hackathon) & 120 panitia."
-                      highlight={true} // Memberi warna ungu sebagai highlight
+                      desc="Memimpin acara tahunan dengan menghadirkan serangkaian kompetisi seperti, Hackathon, Research Paper Competition, Indonesian Debate, ⁠UI/UX Design Competition, Computer Olympiad, kemudian diramaikan dengan berbagai agenda inspiratif seperti Seminar Nasional, Tekkom Learning Bootcamp, dan Workshop Mobile Development"
+                      highlight={true} 
                       evidenceLabel="Dokumentasi"
                       images={["cmd.png", "cmd1.jpeg", "cmd2.jpeg", "cmd3.jpeg", "cmd4.jpeg", "cmd5.jpeg"]}
                       onOpenGallery={openGallery}
                     />
                     <TimelineCard 
                       role="Wakil Ketua Pelaksana" 
-                      org="PBMT 2024" 
+                      org="PBMT XI-KKN" 
                       date="2024" 
-                      desc="Mengelola bakti sosial teknik di desa Luthu Lamwu."
+                      desc="Mengelola bakti sosial teknik di desa Luthu Lamwu, salah satu program unggulan dalam kegiatan ini adalah pengembangan sistem air isi ulang yang langsung dapat diminum, yang diharapkan dapat meningkatkan aksesibilitas terhadap air bersih secara lebih efisien dan merata"
                       evidenceLabel="Dokumentasi"
                       images={["pbmt.png"]}
                       onOpenGallery={openGallery}
@@ -883,118 +1072,122 @@ const App = () => {
                     />
                 </div>
               </div>
-            </FadeIn>
+            </Reveal>
 
-            {/* Kolom Kanan: Organisasi */}
-            <FadeIn delay={400}>
-              <div>
-                <h3 className="text-2xl font-bold mb-8 flex items-center gap-3 text-white px-2">
-                  <span className="p-2 bg-blue-500/20 rounded-lg text-blue-400"><Building2 size={24}/></span>
-                  Organisasi
-                </h3>
-
-                <div className="space-y-8">
-                   {/* HIMATEKKOM */}
+            {/* Column 2: Organization */}
+            <Reveal delay={400}>
+              <div className="relative mt-12 lg:mt-0">
+                <div className="absolute -top-4 -right-4 bg-blue-400 border-2 border-black px-4 py-1 font-black uppercase text-sm transform rotate-2 z-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    Organisasi
+                </div>
+                <div className="pt-8 grid gap-8">
                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 px-2 opacity-80">
-                         <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
-                            <img src="himatekkom.png" alt="logo" className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'}/>
+                      <div className="flex items-center gap-3 border-b-2 border-black pb-2">
+                         <div className="w-10 h-10 rounded-full bg-white border-2 border-black flex items-center justify-center overflow-hidden p-1">
+                            <img src="himatekkom.png" alt="logo" className="w-full h-full object-contain" onError={(e) => e.target.style.display='none'}/>
                          </div>
-                         <h4 className="font-bold text-white">Himpunan Mahasiswa Teknik Komputer</h4>
+                         <h4 className="font-bold text-black uppercase">Himpunan Mahasiswa Teknik Komputer</h4>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                          <OrgCard role="Wakadiv Kesma" period="2024" desc="Aspirasi & Kesejahteraan." images={["kesma.jpg"]} onOpenGallery={openGallery} />
                          <OrgCard role="Anggota Mikat" period="2025" desc="Minat & Bakat." />
                          <OrgCard role="Anggota Kesma" period="2023" desc="Staff Muda." images={["kesma1.png"]} onOpenGallery={openGallery} />
                       </div>
                    </div>
 
-                   {/* BEM FT */}
                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 px-2 opacity-80">
-                         <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
-                            <img src="bem.png" alt="logo" className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'}/>
+                      <div className="flex items-center gap-3 border-b-2 border-black pb-2">
+                         <div className="w-10 h-10 rounded-full bg-white border-2 border-black flex items-center justify-center overflow-hidden p-1">
+                            <img src="bem.png" alt="logo" className="w-full h-full object-contain" onError={(e) => e.target.style.display='none'}/>
                          </div>
-                         <h4 className="font-bold text-white">BEM Fakultas Teknik</h4>
+                         <h4 className="font-bold text-black uppercase">BEM Fakultas Teknik</h4>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                          <OrgCard role="Staf Humas" period="2024" desc="Branding Fakultas." images={["humas.png"]} onOpenGallery={openGallery} />
                       </div>
                    </div>
                 </div>
               </div>
-            </FadeIn>
+            </Reveal>
 
           </div>
         </div>
       </section>
 
-      {/* --- SECTION CERTIFICATIONS (SERTIFIKASI) --- */}
-      <section id="certs" className="py-24">
-         <div className="container mx-auto px-6">
-            <FadeIn>
-              <h2 className="text-3xl md:text-5xl font-bold text-center mb-12">Sertifikasi & <span className="text-green-400">Pendidikan</span></h2>
-            </FadeIn>
+      {/* Certifications */}
+      <section id="certs" className="py-24 bg-yellow-50 relative overflow-hidden">
+         {/* Background pattern */}
+         <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 10px 10px'}}></div>
+
+         <div className="container mx-auto px-6 relative z-10">
+            <Reveal>
+              <h2 className="text-3xl md:text-5xl font-black text-center mb-12 bg-white border-2 border-black inline-block px-8 py-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mx-auto block transform rotate-1">
+                SERTIFIKASI & PELATIHAN
+              </h2>
+            </Reveal>
             
-            {/* Horizontal Scroll untuk Sertifikat */}
-            <div className="w-full overflow-x-auto pb-12 responsive-scrollbar snap-x snap-mandatory">
-              <div className="flex gap-6 w-max">
+            {/* Menambahkan ref={certScrollRef} dan menghapus 'snap-x snap-mandatory' */}
+            <div 
+                ref={certScrollRef}
+                className="w-full overflow-x-auto pb-16 pt-4 px-4 -mx-4 responsive-scrollbar"
+            >
+              <div className="flex gap-8 w-max">
                  
-                 <div className="w-[300px] md:w-[350px] snap-center">
+                 <div className="w-[320px] md:w-[360px] flex-shrink-0">
                     <CertCard 
-                      title="Bangkit Academy 2024" 
+                      title="Bangkit Academy 2024"  
                       subtitle="Google, GoTo, Traveloka" 
                       desc="Studi Independen Machine Learning. Capstone Project AI."
                       color="green" 
-                      icon={<BookOpen size={24}/>} 
+                      icon={<BookOpen className="text-black" />} 
                       images={["bangkit.jpg", "bangkit1.jpg", "bangkit2.jpg"]}
                       onOpenGallery={openGallery}
                     />
                  </div>
                  
-                 <div className="w-[300px] md:w-[350px] snap-center">
+                 <div className="w-[320px] md:w-[360px] flex-shrink-0">
                     <CertCard 
                       title="IoT Device Engineering" 
                       subtitle="BNSP / LSP TDI" 
                       desc="Sertifikasi kompetensi bidang IoT dan Jaringan."
                       color="yellow" 
-                      icon={<Cpu size={24}/>} 
+                      icon={<Cpu className="text-black" />} 
                       images={["iot.jpg", "iot1.jpg"]}
                       onOpenGallery={openGallery}
                     />
                  </div>
 
-                 <div className="w-[300px] md:w-[350px] snap-center">
+                 <div className="w-[320px] md:w-[360px] flex-shrink-0">
                     <CertCard 
                       title="Skill Academy CAMP" 
                       subtitle="Ruangguru" 
                       desc="Bootcamp intensif UI/UX Design & Prototyping."
                       color="orange" 
-                      icon={<Award size={24}/>} 
+                      icon={<Award className="text-black" />} 
                       images={["camp.jpg", "camp1.jpg"]}
                       onOpenGallery={openGallery}
                     />
                  </div>
 
-                 <div className="w-[300px] md:w-[350px] snap-center">
+                 <div className="w-[320px] md:w-[360px] flex-shrink-0">
                     <CertCard 
                       title="Webinar AI Weather" 
                       subtitle="KORIKA" 
                       desc="Pemanfaatan AI untuk prakiraan cuaca."
                       color="blue" 
-                      icon={<ExternalLink size={24}/>} 
+                      icon={<ExternalLink className="text-black" />} 
                       images={["korika.jpg"]}
                       onOpenGallery={openGallery}
                     />
                  </div>
                  
-                 <div className="w-[300px] md:w-[350px] snap-center">
+                 <div className="w-[320px] md:w-[360px] flex-shrink-0">
                     <CertCard 
                       title="Olimpiade Sains (OSN)" 
                       subtitle="Kemdikbud" 
                       desc="Juara Tingkat Kota Bidang Informatika."
                       color="yellow" 
-                      icon={<Award size={24}/>} 
+                      icon={<Award className="text-black" />} 
                       images={["osn.jpg"]}
                       onOpenGallery={openGallery}
                     />
@@ -1005,24 +1198,28 @@ const App = () => {
          </div>
       </section>
 
-      {/* --- FOOTER (BAGIAN BAWAH) --- */}
-      <footer className="py-12 bg-slate-950 border-t border-white/5 text-center">
-        <div className="container mx-auto px-6">
-          <h2 className="text-2xl font-bold text-white mb-8">Mari Terhubung</h2>
-          {/* Link Sosial Media Footer */}
-          <div className="flex justify-center gap-6 mb-8 flex-wrap">
-             <SocialLink href="mailto:tampengrifqmubarak@gmail.com" icon={<Mail size={24}/>} color="hover:bg-red-500" />
-             <SocialLink href="https://wa.me/85214006701" icon={<Phone size={24}/>} color="hover:bg-green-500" />
-             <SocialLink href="https://www.linkedin.com/in/rifqiimt/" icon={<Linkedin size={24}/>} color="hover:bg-blue-600" />
-             <SocialLink href="https://www.instagram.com/rifqiimt/" icon={<Instagram size={24}/>} color="hover:bg-pink-500" />
-             <SocialLink href="#" icon={<Github size={24}/>} color="hover:bg-slate-700" />
+      {/* Footer */}
+      <footer className="py-16 bg-black text-white border-t-8 border-yellow-400">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-3xl font-black mb-8 uppercase tracking-widest">Siap Kolaborasi?</h2>
+          <div className="flex justify-center gap-4 mb-12 flex-wrap">
+             {[
+                 { icon: <Github size={24}/>, href: "https://github.com/rifqiimt" },
+                 { icon: <Instagram size={24}/>, href: "https://www.instagram.com/rifqiimt/" },
+                 { icon: <Linkedin size={24}/>, href: "https://www.linkedin.com/in/rifqiimt/" },
+                 { icon: <Mail size={24}/>, href: "mailto:tampengrifqmubarak@gmail.com" },
+                 { icon: <Phone size={24}/>, href: "https://wa.me/85214006701" }
+             ].map((social, idx) => (
+                 <a key={idx} href={social.href} className="w-14 h-14 bg-white text-black border-2 border-white flex items-center justify-center rounded hover:bg-black hover:text-white hover:border-white transition-colors">
+                     {social.icon}
+                 </a>
+             ))}
           </div>
-          <p className="text-slate-600 text-sm">© 2025 Rifqi Mubarak Tampeng. All rights reserved</p>
+          <div className="w-24 h-2 bg-yellow-400 mx-auto mb-8"></div>
+          <p className="text-gray-400 text-sm font-mono">© 2025 Rifqi Mubarak Tampeng. <br/>Made with <span className="text-red-500">♥</span> & Neo-Brutalism Style.</p>
         </div>
       </footer>
 
-      {/* --- MODAL GALERI GAMBAR (LIGHTBOX) --- */}
-      {/* Jangan dihapus, ini komponen yang muncul saat gambar diklik */}
       <ImageGalleryModal 
         isOpen={isGalleryOpen} 
         images={currentGalleryImages} 
@@ -1033,5 +1230,12 @@ const App = () => {
     </div>
   );
 };
+
+// Helper component for Quote Icon
+const QuoteIcon = ({className}) => (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14.017 21L14.017 18C14.017 16.896 14.353 15.925 15.025 15.088C15.697 14.252 16.637 13.833 17.845 13.833H19V9H17.291C16.427 9 15.635 9.176 14.915 9.528C14.195 9.88 13.835 10.592 13.835 11.664V21H14.017ZM7.017 21L7.017 18C7.017 16.896 7.353 15.925 8.025 15.088C8.697 14.252 9.637 13.833 10.845 13.833H12V9H10.291C9.427 9 8.635 9.176 7.915 9.528C7.195 9.88 6.835 10.592 6.835 11.664V21H7.017Z"/>
+    </svg>
+);
 
 export default App;
