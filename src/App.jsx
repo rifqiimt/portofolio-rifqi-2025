@@ -253,7 +253,7 @@ const App = () => {
               
               <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-black bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] z-10 hover:scale-105 transition-transform duration-500">
                  <img 
-                  src="pp.jpg" 
+                  src="pp.jpeg" 
                   alt="Rifqi Mubarak" 
                   className="w-full h-full object-cover"
                   onError={(e) => {e.target.src = "https://api.dicebear.com/9.x/avataaars/svg?seed=Rifqi"}} 
